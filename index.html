@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#fffaf2">
+  <title>晚餐吃什麼？｜互動轉盤</title>
+  <style>
+    /* 所有主要樣式都限定在 #dinner-wheel-app，避免影響既有網站。 */
+    #dinner-wheel-app {
+      --dw-ink: #572b16;
+      --dw-ink-light: #8c6a56;
+      /* === 轉盤 RGB 配色：只需修改以下三行，不必修改 JavaScript === */
+      --dw-color-odd: rgb(255, 156, 69);    /* 顏色 A／第 1 格：橘色 */
+      --dw-color-even: rgb(97, 196, 181);   /* 顏色 B／第 2 格：湖水綠 */
+      --dw-color-third: rgb(255, 184, 154); /* 顏色 C／第 3 格：蜜桃粉 #FFB89A */
+      --dw-cream: #fffaf2;
+      --dw-outline: #efdccc;
+      color: var(--dw-ink);
+      font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      line-height: 1.5;
+      isolation: isolate;
+    }
+    #dinner-wheel-app, #dinner-wheel-app * { box-sizing: border-box; }
+    #dinner-wheel-app button,
+    #dinner-wheel-app input { font: inherit; }
+    #dinner-wheel-app button { cursor: pointer; }
+    #dinner-wheel-app button:disabled { cursor: not-allowed; opacity: .55; }
+    #dinner-wheel-app button:focus-visible,
+    #dinner-wheel-app input:focus-visible { outline: 3px solid #447ecb; outline-offset: 3px; }
+    #dinner-wheel-app .dw-shell {
+      max-width: 1160px;
+      margin: 0 auto;
+      padding: clamp(15px, 4vw, 34px) clamp(16px, 4.4vw, 52px) 34px;
+      overflow: hidden;
+      border: 1px solid #f4e7d9;
+      border-radius: clamp(22px, 3vw, 38px);
+      background:
+        radial-gradient(circle at 7% 46%, #fff0d9 0 10%, transparent 30%),
+        radial-gradient(circle at 94% 8%, #faefde 0 9%, transparent 31%),
+        var(--dw-cream);
+      box-shadow: 0 16px 55px rgba(111, 68, 32, .075);
+    }
+    #dinner-wheel-app .dw-header { text-align: center; position: relative; z-index: 1; }
+    #dinner-wheel-app .dw-kicker {
+      display: inline-block; padding: 5px 15px;
+      border: 1px solid #efd9bb; border-radius: 99px;
+      background: #fff4e2; color: #a16e31;
+      font-size: 11px; font-weight: 900; letter-spacing: .15em;
+    }
+    #dinner-wheel-app .dw-title {
+      width: fit-content; max-width: 100%; position: relative;
+      margin: 13px auto 2px;
+      font-size: clamp(36px, 5vw, 68px); font-weight: 1000;
+      letter-spacing: .035em; line-height: 1.3;
+      color: #50220f; transform: rotate(-1.4deg);
+    }
+    #dinner-wheel-app .dw-title::before {
+      content: ""; z-index: -1; position: absolute;
+      left: -5%; right: -5%; bottom: 4px; height: 51%;
+      background: #ffebbf; border-radius: 50% 44% 35% 30%;
+      transform: rotate(1.1deg);
+    }
+    #dinner-wheel-app .dw-title::after {
+      content: "✦"; position: absolute; top: 1px; right: -43px;
+      color: #f6b83e; font-size: .42em; transform: rotate(17deg);
+    }
+    #dinner-wheel-app .dw-subtitle {
+      margin: 11px auto 0; color: var(--dw-ink-light);
+      font-size: clamp(13px, 1.4vw, 15px);
+    }
+    #dinner-wheel-app .dw-layout {
+      display: grid; grid-template-columns: minmax(0, 1.28fr) minmax(290px, .78fr);
+      gap: clamp(20px, 3.1vw, 44px); align-items: center;
+      margin-top: clamp(18px, 3vw, 33px);
+    }
+    #dinner-wheel-app .dw-wheel-panel { min-width: 0; text-align: center; }
+    #dinner-wheel-app .dw-wheel-stage {
+      width: 100%; max-width: 620px; margin: 0 auto;
+      aspect-ratio: 1 / 1; position: relative;
+    }
+    #dinner-wheel-app .dw-wheel-svg {
+      display: block; width: 100%; height: 100%;
+      overflow: visible; filter: drop-shadow(0 12px 6px rgba(96,53,18,.1));
+    }
+    /* SVG 的填色由 CSS 變數控制，F12 改上方 RGB 會立即反映在轉盤。 */
+    #dinner-wheel-app .dw-wheel-svg .dw-segment-color-0 { fill: var(--dw-color-odd); }
+    #dinner-wheel-app .dw-wheel-svg .dw-segment-color-1 { fill: var(--dw-color-even); }
+    #dinner-wheel-app .dw-wheel-svg .dw-segment-color-2 { fill: var(--dw-color-third); }
+    #dinner-wheel-app .dw-chip.dw-segment-color-0 { background-color: var(--dw-color-odd); }
+    #dinner-wheel-app .dw-chip.dw-segment-color-1 { background-color: var(--dw-color-even); }
+    #dinner-wheel-app .dw-chip.dw-segment-color-2 { background-color: var(--dw-color-third); }
+    #dinner-wheel-app .dw-rotor {
+      transform-origin: 320px 320px;
+      transition: transform 4.2s cubic-bezier(.12,.7,.12,1);
+      will-change: transform;
+    }
+    #dinner-wheel-app .dw-wheel-pointer {
+      width: 12.5%; min-width: 37px; max-width: 72px;
+      position: absolute; top: -1.2%; left: 50%;
+      transform: translateX(-50%); z-index: 5;
+      filter: drop-shadow(0 4px 2px rgba(80, 33, 24, .2));
+      pointer-events: none;
+    }
+    #dinner-wheel-app .dw-food-sticker {
+      position: absolute; z-index: 2; font-size: clamp(25px, 4vw, 52px);
+      line-height: 1; user-select: none; pointer-events: none;
+      filter: drop-shadow(0 4px 0 rgba(129, 97, 68, .11));
+    }
+    #dinner-wheel-app .dw-food-1 { left: -2%; top: 8%; transform: rotate(-16deg); }
+    #dinner-wheel-app .dw-food-2 { right: -4%; top: 14%; transform: rotate(12deg); }
+    #dinner-wheel-app .dw-food-3 { left: -3%; bottom: 8%; transform: rotate(10deg); }
+    #dinner-wheel-app .dw-food-4 { right: -2%; bottom: 10%; transform: rotate(-12deg); }
+    #dinner-wheel-app .dw-actions { max-width: 395px; margin: 4px auto 0; }
+    #dinner-wheel-app .dw-spin-btn {
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      width: 100%; min-height: 61px; padding: 13px 20px;
+      border: 2px solid #dc7438; border-radius: 999px;
+      background: linear-gradient(110deg,#ffa653,#ff844f);
+      color: #582514; font-weight: 1000; font-size: 19px;
+      box-shadow: 0 7px 0 #e7a06f, 0 14px 24px rgba(176, 98, 49, .13);
+      transition: transform .15s, box-shadow .15s, filter .15s;
+    }
+    #dinner-wheel-app .dw-spin-btn:not(:disabled):hover { transform: translateY(-2px); filter: brightness(1.03); }
+    #dinner-wheel-app .dw-spin-btn:not(:disabled):active { transform: translateY(4px); box-shadow: 0 2px 0 #e7a06f; }
+    #dinner-wheel-app .dw-spin-btn:disabled { opacity: .68; }
+    #dinner-wheel-app .dw-result {
+      display: flex; align-items: center; justify-content: center; flex-wrap: wrap;
+      gap: 6px 11px; margin: 23px 0 0;
+      min-height: 60px; padding: 13px 19px;
+      background: #fff; border: 1px solid #f1dfca; border-radius: 20px;
+      box-shadow: 0 5px 16px rgba(140,95,61,.045);
+    }
+    #dinner-wheel-app .dw-result-label {
+      color: #ae845a; font-size: 12px; font-weight: 850;
+      border-radius: 99px; background: #fff2dc; padding: 4px 9px;
+      white-space: nowrap;
+    }
+    #dinner-wheel-app .dw-result-name {
+      color: #63351c; font-size: clamp(16px, 2vw, 20px);
+      font-weight: 950; overflow-wrap: anywhere;
+    }
+    #dinner-wheel-app .dw-result.dw-pop .dw-result-name { animation: dw-result-pop .45s ease both; }
+    @keyframes dw-result-pop { 0% { transform: scale(.83); } 60% { transform: scale(1.11); } 100% { transform: scale(1); } }
+    #dinner-wheel-app .dw-editor {
+      min-width: 0; background: rgba(255,255,255,.94);
+      border: 1px solid #f1dfcd; border-radius: 25px;
+      padding: clamp(19px, 2.3vw, 29px);
+      box-shadow: 0 12px 36px rgba(112, 73, 43, .075);
+    }
+    #dinner-wheel-app .dw-editor-heading {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+      margin-bottom: 8px;
+    }
+    #dinner-wheel-app .dw-editor-title {
+      margin: 0; font-size: clamp(20px, 2vw, 24px);
+      font-weight: 950; line-height: 1.35;
+    }
+    #dinner-wheel-app .dw-count {
+      border-radius: 99px; padding: 3px 9px;
+      background: #fff0d9; color: #965b26;
+      font-size: 12px; font-weight: 850;
+    }
+    #dinner-wheel-app .dw-editor-desc { margin: 0 0 20px; color: #977b66; font-size: 13px; }
+    #dinner-wheel-app .dw-add-form { display: flex; gap: 8px; margin-bottom: 11px; }
+    #dinner-wheel-app .dw-add-input {
+      width: 100%; min-width: 0; height: 47px;
+      padding: 0 14px; border: 1.5px solid #e8d8c7;
+      border-radius: 13px; background: #fffdf9;
+      color: var(--dw-ink); font-size: 15px;
+    }
+    #dinner-wheel-app .dw-add-input::placeholder { color: #b4a18f; }
+    #dinner-wheel-app .dw-add-btn {
+      flex: none; border: 0; border-radius: 12px;
+      padding: 0 17px; background: #4fb5a4;
+      color: white; font-size: 14px; font-weight: 900;
+      transition: background .15s;
+    }
+    #dinner-wheel-app .dw-add-btn:not(:disabled):hover { background: #329e8d; }
+    #dinner-wheel-app .dw-message { min-height: 19px; margin: 0 0 12px; color: #aa6045; font-size: 12px; }
+    #dinner-wheel-app .dw-list {
+      display: grid; gap: 7px; max-height: 400px;
+      margin: 0; padding: 3px 3px 4px 0;
+      overflow-y: auto; list-style: none; scrollbar-width: thin;
+    }
+    #dinner-wheel-app .dw-list-item {
+      display: flex; align-items: center; gap: 10px;
+      min-height: 43px; padding: 7px 8px 7px 10px;
+      border-radius: 11px; background: #fcf7f0; border: 1px solid #f6eee6;
+    }
+    #dinner-wheel-app .dw-chip {
+      display: inline-grid; place-items: center; flex: none;
+      min-width: 26px; height: 26px; padding: 0 5px;
+      border-radius: 8px; color: #512810;
+      font-size: 11px; font-weight: 900;
+    }
+    #dinner-wheel-app .dw-item-name {
+      min-width: 0; flex: 1; overflow-wrap: anywhere;
+      color: #5d3d2a; text-align: left; font-weight: 750; font-size: 14px;
+    }
+    #dinner-wheel-app .dw-remove-btn {
+      width: 29px; height: 29px; flex: none; display: grid; place-items: center;
+      border-radius: 50%; border: 1px solid #eed4cb; background: #fff;
+      color: #d46a55; font-size: 20px; line-height: 1; font-weight: 500;
+      transition: background .15s;
+    }
+    #dinner-wheel-app .dw-remove-btn:not(:disabled):hover { background: #ffe8df; }
+    #dinner-wheel-app .dw-empty {
+      margin: 0; padding: 20px 8px; text-align: center; color: #aa8b73; font-size: 13px;
+    }
+    #dinner-wheel-app .dw-storage-note { margin: 14px 0 0; color: #9d8876; font-size: 11px; }
+    #dinner-wheel-app .dw-footer { margin: 25px auto 0; text-align: center; color: #aa8870; font-size: 12px; }
+    @media (max-width: 880px) {
+      #dinner-wheel-app .dw-layout { grid-template-columns: minmax(0,1fr); max-width: 650px; margin: 25px auto 0; }
+      #dinner-wheel-app .dw-wheel-stage { max-width: 580px; }
+      #dinner-wheel-app .dw-editor { max-width: 650px; }
+      #dinner-wheel-app .dw-title::after { right: -27px; }
+    }
+    @media (max-width: 480px) {
+      #dinner-wheel-app .dw-shell { border-radius: 19px; padding: 28px 12px 25px; }
+      #dinner-wheel-app .dw-title { font-size: clamp(32px, 9vw, 44px); }
+      #dinner-wheel-app .dw-title::after { right: -16px; font-size: .29em; }
+      #dinner-wheel-app .dw-subtitle { padding: 0 12px; }
+      #dinner-wheel-app .dw-wheel-stage { width: calc(100% - 4px); }
+      #dinner-wheel-app .dw-food-sticker { font-size: 27px; }
+      #dinner-wheel-app .dw-food-1 { left: 0; top: 8%; }
+      #dinner-wheel-app .dw-food-2 { right: 0; top: 13%; }
+      #dinner-wheel-app .dw-food-3 { left: 0; bottom: 7%; }
+      #dinner-wheel-app .dw-food-4 { right: 0; bottom: 8%; }
+      #dinner-wheel-app .dw-spin-btn { min-height: 55px; font-size: 17px; }
+      #dinner-wheel-app .dw-result { margin-top: 20px; }
+      #dinner-wheel-app .dw-editor { border-radius: 20px; padding: 20px 15px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      #dinner-wheel-app *, #dinner-wheel-app *::before, #dinner-wheel-app *::after {
+        animation-duration: .01ms !important; transition-duration: .01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="dinner-wheel-app" class="dw-app">
+    <div class="dw-shell">
+      <header class="dw-header">
+<!--        <span class="dw-kicker">WHAT'S FOR DINNER?</span>-->
+        <h1 class="dw-title">晚餐吃什麼？</h1>
+        <p class="dw-subtitle">選擇障礙發作中？今晚就交給命運決定！</p>
+      </header>
+
+      <main class="dw-layout">
+        <section class="dw-wheel-panel" aria-label="晚餐抽籤轉盤">
+          <div class="dw-wheel-stage">
+            <span class="dw-food-sticker dw-food-1" aria-hidden="true">🍜</span>
+            <span class="dw-food-sticker dw-food-2" aria-hidden="true">🍛</span>
+            <span class="dw-food-sticker dw-food-3" aria-hidden="true">🍕</span>
+            <span class="dw-food-sticker dw-food-4" aria-hidden="true">🥦</span>
+
+            <svg class="dw-wheel-svg" viewBox="0 0 640 640" role="img" aria-label="可旋轉的晚餐選項轉盤">
+              <circle cx="320" cy="320" r="301" fill="#f0d9c2" />
+              <circle cx="320" cy="320" r="287" fill="#fff" />
+              <g id="dw-rotor" class="dw-rotor"></g>
+              <circle cx="320" cy="320" r="91" fill="#fffefa" stroke="#fff" stroke-width="9"/>
+              <circle cx="320" cy="320" r="82" fill="#ffe99a" stroke="#f6c768" stroke-width="7"/>
+              <g fill="none" stroke="#ff9d39" stroke-width="8" stroke-linecap="round">
+                <path d="M227 300l-14-7" /> <path d="M227 342l-14 7" />
+                <path d="M413 300l14-7" /> <path d="M413 342l14 7" />
+              </g>
+              <g fill="#5b2c15" text-anchor="middle" font-weight="1000"
+                 font-family="Noto Sans TC, PingFang TC, Microsoft JhengHei, sans-serif">
+                <text x="320" y="312" font-size="34">晚餐</text>
+                <text x="320" y="360" font-size="34">吃什麼</text>
+              </g>
+            </svg>
+            <svg class="dw-wheel-pointer" viewBox="0 0 80 92" aria-hidden="true">
+              <path d="M9 10 Q4 10 8 18 L32 76 Q40 91 48 76 L72 18 Q76 10 68 10 Z"
+                    fill="#f05050" stroke="#fffaf5" stroke-width="8" stroke-linejoin="round" />
+              <path d="M24 21H56L40 57Z" fill="#ff7574" opacity=".33" />
+            </svg>
+          </div>
+          <div class="dw-actions">
+            <button class="dw-spin-btn" type="button" id="dw-spin-btn">
+              <span aria-hidden="true">✦</span><span id="dw-spin-btn-label">轉轉盤，決定晚餐！</span><span aria-hidden="true">✦</span>
+            </button>
+            <div class="dw-result" id="dw-result" role="status" aria-live="polite" aria-atomic="true">
+              <span class="dw-result-label">🍴 今日命運</span>
+              <strong class="dw-result-name" id="dw-result-name">準備好就按下轉盤吧！</strong>
+            </div>
+          </div>
+        </section>
+
+        <aside class="dw-editor" aria-labelledby="dw-editor-title">
+          <div class="dw-editor-heading">
+            <h2 class="dw-editor-title" id="dw-editor-title">今晚候選菜單</h2>
+            <span class="dw-count" id="dw-count">0 個選項</span>
+          </div>
+          <p class="dw-editor-desc">想吃什麼自己加，不想吃的就刪掉～</p>
+
+          <form class="dw-add-form" id="dw-add-form">
+            <input class="dw-add-input" id="dw-add-input" type="text" name="food"
+                   maxlength="20" placeholder="例如：壽司、義大利麵..."
+                   aria-label="新增晚餐選項" autocomplete="off" required>
+            <button class="dw-add-btn" id="dw-add-btn" type="submit">＋ 新增</button>
+          </form>
+          <p class="dw-message" id="dw-message" role="status" aria-live="polite"></p>
+          <ul class="dw-list" id="dw-list" aria-label="晚餐選項列表"></ul>
+
+          <p class="dw-storage-note">✿ 選項會自動儲存在這個瀏覽器，下次打開還在。</p>
+        </aside>
+      </main>
+      <footer class="dw-footer">今晚的選擇困難，轉一下就解決 ✧</footer>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      'use strict';
+      const root = document.getElementById('dinner-wheel-app');
+      if (!root) return;
+      const $ = (selector) => root.querySelector(selector);
+      const SVG_NS = 'http://www.w3.org/2000/svg';
+      const KEY_OPTIONS = 'dinner-wheel-options-v1';
+      const DEFAULT_FOODS = ['拉麵', '咖哩飯', '火鍋', '義大利麵', '水餃', '滷肉飯', '壽司', '漢堡', '披薩', '牛肉麵'];
+      const MAX_OPTIONS = 24;
+
+      const rotor = $('#dw-rotor');
+      const list = $('#dw-list');
+      const count = $('#dw-count');
+      const form = $('#dw-add-form');
+      const input = $('#dw-add-input');
+      const addBtn = $('#dw-add-btn');
+      const spinBtn = $('#dw-spin-btn');
+      const spinBtnLabel = $('#dw-spin-btn-label');
+      const result = $('#dw-result');
+      const resultName = $('#dw-result-name');
+      const message = $('#dw-message');
+      let rotation = 0;
+      let spinning = false;
+      let spinTimer;
+
+      function readJSON(key) {
+        try { const data = localStorage.getItem(key); return data === null ? null : JSON.parse(data); }
+        catch (_) { return null; } // 隱私模式或停用儲存功能時也能使用
+      }
+      function storeJSON(key, value) {
+        try { localStorage.setItem(key, JSON.stringify(value)); }
+        catch (_) { /* 不支援 localStorage 時，至少保留本次頁面的選項 */ }
+      }
+      const saved = readJSON(KEY_OPTIONS);
+      let foods = Array.isArray(saved)
+        ? saved.filter(x => typeof x === 'string' && x.trim()).slice(0, MAX_OPTIONS).map(x => x.trim().slice(0, 20))
+        : [...DEFAULT_FOODS];
+      // 轉盤顏色只由 CSS 最上方的 --dw-color-* 三個 RGB 變數決定。
+      // 不再套用舊版瀏覽器儲存的顏色，因此在原始碼修改能立即生效。
+      const svg = (tag, attrs = {}) => {
+        const node = document.createElementNS(SVG_NS, tag);
+        Object.entries(attrs).forEach(([key, value]) => node.setAttribute(key, value));
+        return node;
+      };
+      const mod = (n, m) => ((n % m) + m) % m;
+      // 偶數用 AB 交替；奇數至少需要 ABC 三色才不會首尾同色。
+      // 例如 7 格的 ABCABCA 會首尾撞色，因此改為 ABCABCB。
+      function segmentColorIndex(i, total) {
+        if (total <= 1 || total % 2 === 0) return i % 2;
+        if (total % 3 === 1 && i === total - 1) return 1;
+        return i % 3;
+      }
+      const rad = deg => deg * Math.PI / 180;
+      const point = (angle, radius) => ({
+        x: 320 + Math.cos(rad(angle)) * radius,
+        y: 320 + Math.sin(rad(angle)) * radius
+      });
+
+      function splitLabel(value, maxChars) {
+        const arr = Array.from(value);
+        if (arr.length <= maxChars) return [value];
+        if (arr.length <= maxChars * 2) return [arr.slice(0, maxChars).join(''), arr.slice(maxChars).join('')];
+        return [arr.slice(0, maxChars).join(''), arr.slice(maxChars, maxChars * 2 - 1).join('') + '…'];
+      }
+
+      function renderWheel() {
+        // 修改候選項目時回到初始角度；按下旋轉後，整個 SVG 群組才會旋轉。
+        rotor.style.transition = 'none';
+        rotor.style.transform = 'rotate(0deg)';
+        rotation = 0;
+        rotor.replaceChildren();
+        const n = foods.length;
+        const radius = 275;
+
+        if (n === 0) {
+          rotor.append(svg('circle', { cx: 320, cy: 320, r: radius, fill: '#f4e7d7' }));
+        } else if (n === 1) {
+          rotor.append(svg('circle', { cx: 320, cy: 320, r: radius, class: 'dw-segment-color-0' }));
+        } else {
+          const step = 360 / n;
+          foods.forEach((food, i) => {
+            const a1 = -90 - step / 2 + i * step;
+            const a2 = a1 + step;
+            const p1 = point(a1, radius);
+            const p2 = point(a2, radius);
+            const path = svg('path', {
+              d: `M 320 320 L ${p1.x} ${p1.y} A ${radius} ${radius} 0 ${step > 180 ? 1 : 0} 1 ${p2.x} ${p2.y} Z`,
+              class: `dw-segment-color-${segmentColorIndex(i, n)}`, stroke: '#fffaf4', 'stroke-width': 4, 'stroke-linejoin': 'round'
+            });
+            const tooltip = svg('title');
+            tooltip.textContent = food;
+            path.append(tooltip);
+            rotor.append(path);
+          });
+        }
+
+        if (n > 0) {
+          const step = 360 / n;
+          const fontSize = n <= 5 ? 25 : n <= 8 ? 23 : n <= 12 ? 20 : n <= 16 ? 17 : 14;
+          const charsPerLine = n <= 5 ? 7 : n <= 8 ? 6 : n <= 12 ? 5 : n <= 18 ? 4 : 3;
+          const labelRadius = n <= 6 ? 194 : n <= 12 ? 197 : 207;
+          foods.forEach((food, i) => {
+            const pos = point(-90 + i * step, labelRadius);
+            const lines = splitLabel(food, charsPerLine);
+            const text = svg('text', {
+              x: pos.x, y: pos.y - (lines.length - 1) * fontSize * .58,
+              'text-anchor': 'middle', 'dominant-baseline': 'central',
+              'font-size': fontSize, 'font-weight': 900, fill: '#572b16',
+              'font-family': 'Noto Sans TC, PingFang TC, Microsoft JhengHei, sans-serif'
+            });
+            lines.forEach((line, lineIndex) => {
+              const tspan = svg('tspan', { x: pos.x, dy: lineIndex === 0 ? 0 : fontSize * 1.18 });
+              tspan.textContent = line; // textContent 可避免使用者輸入變成 HTML
+              text.append(tspan);
+            });
+            const tooltip = svg('title');
+            tooltip.textContent = food;
+            text.append(tooltip);
+            rotor.append(text);
+          });
+        }
+        // 強制結算「無動畫」的初始位置，下一次抽籤才能正確轉動。
+        void rotor.getBoundingClientRect();
+        rotor.style.transition = '';
+      }
+
+      function renderList() {
+        list.replaceChildren();
+        count.textContent = `${foods.length} 個選項`;
+        if (!foods.length) {
+          const empty = document.createElement('li');
+          empty.className = 'dw-empty';
+          empty.textContent = '菜單空空的！先新增一個想吃的吧 🍽️';
+          list.append(empty);
+        }
+        foods.forEach((food, index) => {
+          const li = document.createElement('li');
+          li.className = 'dw-list-item';
+          const chip = document.createElement('span');
+          chip.className = `dw-chip dw-segment-color-${segmentColorIndex(index, foods.length)}`;
+          chip.textContent = index + 1;
+          const name = document.createElement('span');
+          name.className = 'dw-item-name';
+          name.textContent = food;
+          const remove = document.createElement('button');
+          remove.type = 'button';
+          remove.className = 'dw-remove-btn';
+          remove.textContent = '×';
+          remove.dataset.removeIndex = String(index);
+          remove.setAttribute('aria-label', `刪除 ${food}`);
+          remove.disabled = spinning;
+          li.append(chip, name, remove);
+          list.append(li);
+        });
+      }
+
+      function updateControls() {
+        spinBtn.disabled = spinning || foods.length === 0;
+        spinBtnLabel.textContent = spinning ? '轉動中，等等看！' : foods.length === 0 ? '先新增晚餐選項' : '轉轉盤，決定晚餐！';
+        input.disabled = spinning;
+        addBtn.disabled = spinning;
+        list.querySelectorAll('.dw-remove-btn').forEach(button => { button.disabled = spinning; });
+      }
+      function renderAll() { renderWheel(); renderList(); updateControls(); }
+      function showMessage(text) { message.textContent = text; }
+      function setResult(text, animate = false) {
+        resultName.textContent = text;
+        result.classList.remove('dw-pop');
+        if (animate) { void result.offsetWidth; result.classList.add('dw-pop'); }
+      }
+
+      form.addEventListener('submit', event => {
+        event.preventDefault();
+        if (spinning) return;
+        const value = input.value.trim();
+        if (!value) return showMessage('請先輸入餐點名稱～');
+        if (foods.length >= MAX_OPTIONS) return showMessage(`最多 ${MAX_OPTIONS} 個選項，請先刪除一些。`);
+        if (foods.includes(value)) return showMessage('這個餐點已經在轉盤裡囉！');
+        foods.push(value);
+        storeJSON(KEY_OPTIONS, foods);
+        input.value = '';
+        showMessage('✓ 新增成功！');
+        setResult('準備好就按下轉盤吧！');
+        renderAll();
+        input.focus();
+      });
+
+      list.addEventListener('click', event => {
+        const button = event.target.closest('button[data-remove-index]');
+        if (!button || spinning) return;
+        const index = Number(button.dataset.removeIndex);
+        if (!Number.isInteger(index) || index < 0 || index >= foods.length) return;
+        const removed = foods.splice(index, 1)[0];
+        storeJSON(KEY_OPTIONS, foods);
+        showMessage(`已刪除「${removed}」`);
+        setResult('準備好就按下轉盤吧！');
+        renderAll();
+      });
+
+      spinBtn.addEventListener('click', () => {
+        if (spinning || !foods.length) return;
+        spinning = true;
+        showMessage('');
+        setResult('命運轉動中……');
+        updateControls();
+
+        // 每一格等機率中獎；停在指針（12 點鐘方向）下方的格子就是結果。
+        const winner = Math.floor(Math.random() * foods.length);
+        const step = 360 / foods.length;
+        const offset = (Math.random() - .5) * step * .5;
+        const desired = mod(-winner * step + offset, 360);
+        const remaining = mod(desired - mod(rotation, 360), 360);
+        rotation += 360 * (5 + Math.floor(Math.random() * 3)) + remaining;
+        const duration = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 4400;
+        let finished = false;
+        const finish = () => {
+          if (finished) return;
+          finished = true;
+          window.clearTimeout(spinTimer);
+          rotor.removeEventListener('transitionend', onTransitionEnd);
+          spinning = false;
+          setResult(`今晚就吃「${foods[winner]}」！ 🎉`, true);
+          updateControls();
+        };
+        const onTransitionEnd = event => {
+          if (event.target === rotor && event.propertyName === 'transform') finish();
+        };
+        rotor.addEventListener('transitionend', onTransitionEnd);
+        rotor.style.transition = duration ? `transform ${duration}ms cubic-bezier(.13,.7,.12,1)` : 'none';
+        requestAnimationFrame(() => {
+          rotor.style.transform = `rotate(${rotation}deg)`;
+          if (duration === 0) finish();
+        });
+        spinTimer = window.setTimeout(finish, duration + 400);
+      });
+
+      renderAll();
+    })();
+  </script>
+</body>
+</html>
