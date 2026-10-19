@@ -238,7 +238,7 @@
     @media (max-width: 480px) {
       #dinner-wheel-app .dw-list-item { gap: 7px; padding: 7px 6px; }
       #dinner-wheel-app .dw-move-btn { width: 28px; height: 32px; }
-      #dinner-wheel-app .dw-remove-btn { width: 28px; height: 30px; }
+      #dinner-wheel-app .dw-remove-btn { width: 28px; height: 28px; font-size: 16px;}
     }
     @media (max-width: 880px) {
       #dinner-wheel-app .dw-layout { grid-template-columns: minmax(0,1fr); max-width: 650px; margin: 25px auto 0; }
@@ -413,6 +413,7 @@
         // 修改候選項目時回到初始角度；按下旋轉後，整個 SVG 群組才會旋轉。
         rotor.style.transition = 'none';
         rotor.style.transform = 'rotate(0deg)';
+
         rotation = 0;
         rotor.replaceChildren();
         const n = foods.length;
