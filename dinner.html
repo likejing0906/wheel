@@ -6,17 +6,22 @@
   <meta name="theme-color" content="#fffaf2">
   <title>晚餐吃什麼？｜互動轉盤</title>
   <style>
-    /* 所有主要樣式都限定在 #dinner-wheel-app，避免影響既有網站。 */
+    /* === 晚餐網站原有色系：橘／湖水綠／蜜桃粉 ===
+       轉盤的三種區塊顏色，可直接修改下列 RGB 三行。
+       偶數格交替使用 A/B；奇數格自動搭配 A/B/C，避免首尾撞色。
+       架構與排序操作沿用早餐版，視覺與內容採用晚餐網站。 */
     #dinner-wheel-app {
-      --dw-ink: #572b16;
-      --dw-ink-light: #8c6a56;
-      /* === 轉盤 RGB 配色：只需修改以下三行，不必修改 JavaScript === */
-      --dw-color-odd: rgb(255, 156, 69);    /* 顏色 A／第 1 格：橘色 */
-      --dw-color-even: rgb(97, 196, 181);   /* 顏色 B／第 2 格：湖水綠 */
-      --dw-color-third: rgb(255, 184, 154); /* 顏色 C／第 3 格：蜜桃粉 #FFB89A */
-      --dw-cream: #fffaf2;
-      --dw-outline: #efdccc;
-      color: var(--dw-ink);
+      --dw-orange: #FF9C45;             /* 晚餐網站主橘色 */
+      --dw-teal: #61C4B5;               /* 湖水綠 */
+      --dw-peach: #FFB89A;              /* 蜜桃粉 */
+      --dw-cream: #FFFAF2;              /* 背景奶油白 */
+      --dw-brown: #572B16;              /* 文字深咖啡 */
+      --dw-muted: #8c6a56;
+      --dw-outline: #EFDCCC;
+      --dw-color-odd: rgb(255, 156, 69); /* A 橘色 #FF9C45 */
+      --dw-color-even: rgb(97, 196, 181);/* B 湖水綠 #61C4B5 */
+      --dw-color-third: rgb(255, 184, 154);/* C 蜜桃粉 #FFB89A */
+      color: var(--dw-brown);
       font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
       -webkit-font-smoothing: antialiased;
       line-height: 1.5;
@@ -28,7 +33,7 @@
     #dinner-wheel-app button { cursor: pointer; }
     #dinner-wheel-app button:disabled { cursor: not-allowed; opacity: .55; }
     #dinner-wheel-app button:focus-visible,
-    #dinner-wheel-app input:focus-visible { outline: 3px solid #447ecb; outline-offset: 3px; }
+    #dinner-wheel-app input:focus-visible { outline: 3px solid #329e8d; outline-offset: 3px; }
     #dinner-wheel-app .dw-shell {
       max-width: 1160px;
       margin: 0 auto;
@@ -40,7 +45,7 @@
         radial-gradient(circle at 7% 46%, #fff0d9 0 10%, transparent 30%),
         radial-gradient(circle at 94% 8%, #faefde 0 9%, transparent 31%),
         var(--dw-cream);
-      box-shadow: 0 16px 55px rgba(111, 68, 32, .075);
+      box-shadow: 0 16px 55px rgba(111,68,32,.075);
     }
     #dinner-wheel-app .dw-header { text-align: center; position: relative; z-index: 1; }
     #dinner-wheel-app .dw-kicker {
@@ -67,7 +72,7 @@
       color: #f6b83e; font-size: .42em; transform: rotate(17deg);
     }
     #dinner-wheel-app .dw-subtitle {
-      margin: 11px auto 0; color: var(--dw-ink-light);
+      margin: 11px auto 0; color: var(--dw-muted);
       font-size: clamp(13px, 1.4vw, 15px);
     }
     #dinner-wheel-app .dw-layout {
@@ -82,15 +87,14 @@
     }
     #dinner-wheel-app .dw-wheel-svg {
       display: block; width: 100%; height: 100%;
-      overflow: visible; filter: drop-shadow(0 12px 6px rgba(96,53,18,.1));
+      overflow: visible; filter: drop-shadow(0 12px 6px rgba(96,53,18,.10));
     }
-    /* SVG 的填色由 CSS 變數控制，F12 改上方 RGB 會立即反映在轉盤。 */
     #dinner-wheel-app .dw-wheel-svg .dw-segment-color-0 { fill: var(--dw-color-odd); }
     #dinner-wheel-app .dw-wheel-svg .dw-segment-color-1 { fill: var(--dw-color-even); }
     #dinner-wheel-app .dw-wheel-svg .dw-segment-color-2 { fill: var(--dw-color-third); }
-    #dinner-wheel-app .dw-chip.dw-segment-color-0 { background-color: var(--dw-color-odd); }
-    #dinner-wheel-app .dw-chip.dw-segment-color-1 { background-color: var(--dw-color-even); }
-    #dinner-wheel-app .dw-chip.dw-segment-color-2 { background-color: var(--dw-color-third); }
+    #dinner-wheel-app .dw-chip.dw-segment-color-0 { background-color: var(--dw-color-odd); color: var(--dw-brown); }
+    #dinner-wheel-app .dw-chip.dw-segment-color-1 { background-color: var(--dw-color-even); color: var(--dw-brown); }
+    #dinner-wheel-app .dw-chip.dw-segment-color-2 { background-color: var(--dw-color-third); color: var(--dw-brown); }
     #dinner-wheel-app .dw-rotor {
       transform-origin: 320px 320px;
       transition: transform 4.2s cubic-bezier(.12,.7,.12,1);
@@ -100,13 +104,13 @@
       width: 12.5%; min-width: 37px; max-width: 72px;
       position: absolute; top: -1.2%; left: 50%;
       transform: translateX(-50%); z-index: 5;
-      filter: drop-shadow(0 4px 2px rgba(80, 33, 24, .2));
+      filter: drop-shadow(0 4px 2px rgba(80,33,24,.20));
       pointer-events: none;
     }
     #dinner-wheel-app .dw-food-sticker {
       position: absolute; z-index: 2; font-size: clamp(25px, 4vw, 52px);
       line-height: 1; user-select: none; pointer-events: none;
-      filter: drop-shadow(0 4px 0 rgba(129, 97, 68, .11));
+      filter: drop-shadow(0 4px 0 rgba(129,97,68,.11));
     }
     #dinner-wheel-app .dw-food-1 { left: -2%; top: 8%; transform: rotate(-16deg); }
     #dinner-wheel-app .dw-food-2 { right: -4%; top: 14%; transform: rotate(12deg); }
@@ -117,9 +121,9 @@
       display: flex; align-items: center; justify-content: center; gap: 10px;
       width: 100%; min-height: 61px; padding: 13px 20px;
       border: 2px solid #dc7438; border-radius: 999px;
-      background: linear-gradient(110deg,#ffa653,#ff844f);
+      background: linear-gradient(110deg, #ffa653, #ff844f);
       color: #582514; font-weight: 1000; font-size: 19px;
-      box-shadow: 0 7px 0 #e7a06f, 0 14px 24px rgba(176, 98, 49, .13);
+      box-shadow: 0 7px 0 #e7a06f, 0 14px 24px rgba(176,98,49,.13);
       transition: transform .15s, box-shadow .15s, filter .15s;
     }
     #dinner-wheel-app .dw-spin-btn:not(:disabled):hover { transform: translateY(-2px); filter: brightness(1.03); }
@@ -138,7 +142,7 @@
       white-space: nowrap;
     }
     #dinner-wheel-app .dw-result-name {
-      color: #63351c; font-size: clamp(16px, 2vw, 20px);
+      color: var(--dw-brown); font-size: clamp(16px, 2vw, 20px);
       font-weight: 950; overflow-wrap: anywhere;
     }
     #dinner-wheel-app .dw-result.dw-pop .dw-result-name { animation: dw-result-pop .45s ease both; }
@@ -147,7 +151,7 @@
       min-width: 0; background: rgba(255,255,255,.94);
       border: 1px solid #f1dfcd; border-radius: 25px;
       padding: clamp(19px, 2.3vw, 29px);
-      box-shadow: 0 12px 36px rgba(112, 73, 43, .075);
+      box-shadow: 0 12px 36px rgba(112,73,43,.075);
     }
     #dinner-wheel-app .dw-editor-heading {
       display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
@@ -156,6 +160,7 @@
     #dinner-wheel-app .dw-editor-title {
       margin: 0; font-size: clamp(20px, 2vw, 24px);
       font-weight: 950; line-height: 1.35;
+      color: var(--dw-brown);
     }
     #dinner-wheel-app .dw-count {
       border-radius: 99px; padding: 3px 9px;
@@ -168,14 +173,14 @@
       width: 100%; min-width: 0; height: 47px;
       padding: 0 14px; border: 1.5px solid #e8d8c7;
       border-radius: 13px; background: #fffdf9;
-      color: var(--dw-ink); font-size: 15px;
+      color: var(--dw-brown); font-size: 15px;
     }
     #dinner-wheel-app .dw-add-input::placeholder { color: #b4a18f; }
     #dinner-wheel-app .dw-add-btn {
       flex: none; border: 0; border-radius: 12px;
       padding: 0 17px; background: #4fb5a4;
-      color: white; font-size: 14px; font-weight: 900;
-      transition: background .15s;
+      color: #fff; font-size: 14px; font-weight: 900;
+      transition: background .15s, filter .15s;
     }
     #dinner-wheel-app .dw-add-btn:not(:disabled):hover { background: #329e8d; }
     #dinner-wheel-app .dw-message { min-height: 19px; margin: 0 0 12px; color: #aa6045; font-size: 12px; }
@@ -194,13 +199,14 @@
       min-width: 26px; height: 26px; padding: 0 5px;
       border-radius: 8px; color: #512810;
       font-size: 11px; font-weight: 900;
+      border: 1px solid #f6eee6;
     }
     #dinner-wheel-app .dw-item-name {
       min-width: 0; flex: 1; overflow-wrap: anywhere;
       color: #5d3d2a; text-align: left; font-weight: 750; font-size: 14px;
     }
     #dinner-wheel-app .dw-remove-btn {
-      width: 29px; height: 29px; flex: none; display: grid; place-items: center;
+      width: 32px; height: 32px; flex: none; display: grid; place-items: center;
       border-radius: 50%; border: 1px solid #eed4cb; background: #fff;
       color: #d46a55; font-size: 20px; line-height: 1; font-weight: 500;
       transition: background .15s;
@@ -211,6 +217,29 @@
     }
     #dinner-wheel-app .dw-storage-note { margin: 14px 0 0; color: #9d8876; font-size: 11px; }
     #dinner-wheel-app .dw-footer { margin: 25px auto 0; text-align: center; color: #aa8870; font-size: 12px; }
+    /* 早餐版架構新增的選項排序：↑ ↓ 按鈕 + 桌機 HTML5 拖曳。 */
+    #dinner-wheel-app .dw-reorder-tip {
+      margin: -4px 0 10px; color: var(--dw-muted); font-size: 12px;
+    }
+    #dinner-wheel-app .dw-list-item { transition: background .15s, border-color .15s, opacity .15s; }
+    #dinner-wheel-app .dw-list-item[draggable="true"] { cursor: grab; }
+    #dinner-wheel-app .dw-list-item.dw-dragging { opacity: .38; cursor: grabbing; }
+    #dinner-wheel-app .dw-list-item.dw-drag-over { background: #ffeadf; border: 1px dashed #4fb5a4; }
+    #dinner-wheel-app .dw-order-controls { display: flex; align-items: center; gap: 3px; flex: none; }
+    #dinner-wheel-app .dw-move-btn {
+      display: grid; place-items: center; width: 32px; height: 32px;
+      padding: 0; border: 1px solid #ead5c4;
+      border-radius: 8px; background: #fffdf9; color: var(--dw-brown);
+      font-size: 17px; font-weight: 900; line-height: 1;
+      transition: background .15s, border-color .15s;
+    }
+    #dinner-wheel-app .dw-move-btn:not(:disabled):hover { background: #e3f4ef; border-color: #4fb5a4; }
+    #dinner-wheel-app .dw-move-btn:disabled { opacity: .3; }
+    @media (max-width: 480px) {
+      #dinner-wheel-app .dw-list-item { gap: 7px; padding: 7px 6px; }
+      #dinner-wheel-app .dw-move-btn { width: 28px; height: 32px; }
+      #dinner-wheel-app .dw-remove-btn { width: 28px; height: 30px; }
+    }
     @media (max-width: 880px) {
       #dinner-wheel-app .dw-layout { grid-template-columns: minmax(0,1fr); max-width: 650px; margin: 25px auto 0; }
       #dinner-wheel-app .dw-wheel-stage { max-width: 580px; }
@@ -243,7 +272,7 @@
   <div id="dinner-wheel-app" class="dw-app">
     <div class="dw-shell">
       <header class="dw-header">
-<!--        <span class="dw-kicker">WHAT'S FOR DINNER?</span>-->
+<!-- <span class="dw-kicker">WHAT'S FOR DINNER?</span> -->
         <h1 class="dw-title">晚餐吃什麼？</h1>
         <p class="dw-subtitle">選擇障礙發作中？今晚就交給命運決定！</p>
       </header>
@@ -257,7 +286,7 @@
             <span class="dw-food-sticker dw-food-4" aria-hidden="true">🥦</span>
 
             <svg class="dw-wheel-svg" viewBox="0 0 640 640" role="img" aria-label="可旋轉的晚餐選項轉盤">
-              <circle cx="320" cy="320" r="301" fill="#f0d9c2" />
+              <circle cx="320" cy="320" r="301" fill="#F0D9C2" />
               <circle cx="320" cy="320" r="287" fill="#fff" />
               <g id="dw-rotor" class="dw-rotor"></g>
               <circle cx="320" cy="320" r="91" fill="#fffefa" stroke="#fff" stroke-width="9"/>
@@ -303,6 +332,7 @@
             <button class="dw-add-btn" id="dw-add-btn" type="submit">＋ 新增</button>
           </form>
           <p class="dw-message" id="dw-message" role="status" aria-live="polite"></p>
+          <p class="dw-reorder-tip">↕ 用箭頭調整順序，電腦也能直接拖曳排序</p>
           <ul class="dw-list" id="dw-list" aria-label="晚餐選項列表"></ul>
 
           <p class="dw-storage-note">✿ 選項會自動儲存在這個瀏覽器，下次打開還在。</p>
@@ -319,7 +349,7 @@
       if (!root) return;
       const $ = (selector) => root.querySelector(selector);
       const SVG_NS = 'http://www.w3.org/2000/svg';
-      const KEY_OPTIONS = 'dinner-wheel-options-v1';
+      const KEY_OPTIONS = 'dinner-wheel-options-v1'; // 沿用舊版儲存鍵，原本的選項不會消失
       const DEFAULT_FOODS = ['拉麵', '咖哩飯', '火鍋', '義大利麵', '水餃', '滷肉飯', '壽司'];
       const MAX_OPTIONS = 24;
 
@@ -346,6 +376,7 @@
         try { localStorage.setItem(key, JSON.stringify(value)); }
         catch (_) { /* 不支援 localStorage 時，至少保留本次頁面的選項 */ }
       }
+      // 保留已儲存的晚餐選項及其順序。使用者真的清空時，不會強行重設。
       const saved = readJSON(KEY_OPTIONS);
       let foods = Array.isArray(saved)
         ? saved.filter(x => typeof x === 'string' && x.trim()).slice(0, MAX_OPTIONS).map(x => x.trim().slice(0, 20))
@@ -420,7 +451,8 @@
             const text = svg('text', {
               x: pos.x, y: pos.y - (lines.length - 1) * fontSize * .58,
               'text-anchor': 'middle', 'dominant-baseline': 'central',
-              'font-size': fontSize, 'font-weight': 900, fill: '#572b16',
+              'font-size': fontSize, 'font-weight': 900,
+              fill: '#572b16',
               'font-family': 'Noto Sans TC, PingFang TC, Microsoft JhengHei, sans-serif'
             });
             lines.forEach((line, lineIndex) => {
@@ -451,20 +483,48 @@
         foods.forEach((food, index) => {
           const li = document.createElement('li');
           li.className = 'dw-list-item';
+          li.dataset.index = String(index);
+          li.draggable = !spinning;
+          li.title = '電腦可拖曳調整順序';
+
           const chip = document.createElement('span');
           chip.className = `dw-chip dw-segment-color-${segmentColorIndex(index, foods.length)}`;
-          chip.textContent = index + 1;
+          chip.textContent = String(index + 1);
           const name = document.createElement('span');
           name.className = 'dw-item-name';
           name.textContent = food;
+
+          const orderControls = document.createElement('div');
+          orderControls.className = 'dw-order-controls';
+          const up = document.createElement('button');
+          up.type = 'button';
+          up.className = 'dw-move-btn';
+          up.textContent = '↑';
+          up.dataset.move = 'up';
+          up.dataset.index = String(index);
+          up.setAttribute('aria-label', `將「${food}」往上移`);
+          up.title = '往上移';
+          up.disabled = spinning || index === 0;
+          const down = document.createElement('button');
+          down.type = 'button';
+          down.className = 'dw-move-btn';
+          down.textContent = '↓';
+          down.dataset.move = 'down';
+          down.dataset.index = String(index);
+          down.setAttribute('aria-label', `將「${food}」往下移`);
+          down.title = '往下移';
+          down.disabled = spinning || index === foods.length - 1;
+          orderControls.append(up, down);
+
           const remove = document.createElement('button');
           remove.type = 'button';
           remove.className = 'dw-remove-btn';
           remove.textContent = '×';
           remove.dataset.removeIndex = String(index);
           remove.setAttribute('aria-label', `刪除 ${food}`);
+          remove.title = '刪除';
           remove.disabled = spinning;
-          li.append(chip, name, remove);
+          li.append(chip, name, orderControls, remove);
           list.append(li);
         });
       }
@@ -475,6 +535,11 @@
         input.disabled = spinning;
         addBtn.disabled = spinning;
         list.querySelectorAll('.dw-remove-btn').forEach(button => { button.disabled = spinning; });
+        list.querySelectorAll('.dw-move-btn').forEach(button => {
+          const index = Number(button.dataset.index);
+          button.disabled = spinning || (button.dataset.move === 'up' ? index === 0 : index === foods.length - 1);
+        });
+        list.querySelectorAll('.dw-list-item').forEach(item => { item.draggable = !spinning; });
       }
       function renderAll() { renderWheel(); renderList(); updateControls(); }
       function showMessage(text) { message.textContent = text; }
@@ -500,16 +565,85 @@
         input.focus();
       });
 
-      list.addEventListener('click', event => {
-        const button = event.target.closest('button[data-remove-index]');
-        if (!button || spinning) return;
-        const index = Number(button.dataset.removeIndex);
-        if (!Number.isInteger(index) || index < 0 || index >= foods.length) return;
-        const removed = foods.splice(index, 1)[0];
-        storeJSON(KEY_OPTIONS, foods);
-        showMessage(`已刪除「${removed}」`);
+      function moveFood(from, to) {
+        if (spinning || !Number.isInteger(from) || !Number.isInteger(to) ||
+            from < 0 || to < 0 || from >= foods.length || to >= foods.length || from === to) return false;
+        const [moved] = foods.splice(from, 1);
+        foods.splice(to, 0, moved);
+        storeJSON(KEY_OPTIONS, foods); // 沿用舊網站 localStorage，順序持久保存
+        showMessage(`✓ 已將「${moved}」移到第 ${to + 1} 個位置`);
         setResult('準備好就按下轉盤吧！');
-        renderAll();
+        renderAll(); // 同步更新轉盤區塊、色票編號及選項順序
+        return true;
+      }
+
+      list.addEventListener('click', event => {
+        const button = event.target.closest('button');
+        if (!button || !list.contains(button) || spinning) return;
+
+        if (button.hasAttribute('data-move')) {
+          const from = Number(button.dataset.index);
+          const direction = button.dataset.move;
+          const to = from + (direction === 'up' ? -1 : 1);
+          if (moveFood(from, to)) {
+            const sameAction = list.querySelector(`button[data-move="${direction}"][data-index="${to}"]`);
+            const otherAction = list.querySelector(`button[data-move="${direction === 'up' ? 'down' : 'up'}"][data-index="${to}"]`);
+            if (sameAction && !sameAction.disabled) sameAction.focus();
+            else if (otherAction) otherAction.focus();
+          }
+          return;
+        }
+
+        if (button.hasAttribute('data-remove-index')) {
+          const index = Number(button.dataset.removeIndex);
+          if (!Number.isInteger(index) || index < 0 || index >= foods.length) return;
+          const removed = foods.splice(index, 1)[0];
+          storeJSON(KEY_OPTIONS, foods);
+          showMessage(`已刪除「${removed}」`);
+          setResult('準備好就按下轉盤吧！');
+          renderAll();
+        }
+      });
+
+      // 電腦端拖曳排序；手機／鍵盤仍可使用每一列的 ↑ ↓ 操作。
+      let dragFrom = null;
+      const clearDragStyles = () => {
+        list.querySelectorAll('.dw-dragging, .dw-drag-over').forEach(el => {
+          el.classList.remove('dw-dragging', 'dw-drag-over');
+        });
+      };
+      list.addEventListener('dragstart', event => {
+        if (spinning) { event.preventDefault(); return; }
+        const item = event.target.closest('.dw-list-item');
+        if (!item || !list.contains(item)) return;
+        dragFrom = Number(item.dataset.index);
+        event.dataTransfer.effectAllowed = 'move';
+        event.dataTransfer.setData('text/plain', String(dragFrom));
+        requestAnimationFrame(() => item.classList.add('dw-dragging'));
+      });
+      list.addEventListener('dragover', event => {
+        if (dragFrom === null || spinning) return;
+        const target = event.target.closest('.dw-list-item');
+        if (!target || !list.contains(target)) return;
+        event.preventDefault();
+        event.dataTransfer.dropEffect = 'move';
+        list.querySelectorAll('.dw-drag-over').forEach(el => el.classList.remove('dw-drag-over'));
+        if (Number(target.dataset.index) !== dragFrom) target.classList.add('dw-drag-over');
+      });
+      list.addEventListener('drop', event => {
+        if (dragFrom === null || spinning) return;
+        const target = event.target.closest('.dw-list-item');
+        if (!target || !list.contains(target)) return;
+        event.preventDefault();
+        const from = dragFrom;
+        const to = Number(target.dataset.index);
+        dragFrom = null;
+        clearDragStyles();
+        moveFood(from, to);
+      });
+      list.addEventListener('dragend', () => {
+        dragFrom = null;
+        clearDragStyles();
       });
 
       spinBtn.addEventListener('click', () => {
